@@ -4,26 +4,46 @@ import cors from "cors";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
-
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors({ origin: CLIENT_ORIGIN }));
+// Allow multiple frontend URLs
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+  "http://localhost:5173",
+];
 
+// CORS middleware
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("❌ Not allowed by CORS: " + origin));
+    }
+  },
+}));
+
+// Create HTTP server
 const server = http.createServer(app);
 
+// Setup Socket.IO with same CORS
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_ORIGIN,
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("❌ Not allowed by CORS (Socket.IO): " + origin));
+      }
+    },
     methods: ["GET", "POST"],
   },
 });
 
-// Socket.IO Events
+// Socket.IO events
 io.on("connection", (socket) => {
   console.log("🟢 User connected:", socket.id);
 
@@ -36,7 +56,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Start Server
+// Start server
 server.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
 });
