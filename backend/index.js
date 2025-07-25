@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Allowed frontend origins from .env
-const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
   "http://localhost:5173",
 ];
 
@@ -48,13 +48,15 @@ const io = new Server(server, {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn("❌ Blocked Socket.IO origin:", origin);
-        callback(new Error("Not allowed by CORS (Socket.IO)"));
+        console.warn("❌ Blocked Socket.IO CORS origin:", origin);
+        callback(new Error("Not allowed by Socket.IO CORS"));
       }
     },
     methods: ["GET", "POST"],
-    credentials: true
-  }
+    credentials: true,
+  },
+  // ✅ Remove this line or set both transports
+  // transports: ["websocket"],
 });
 
 
@@ -62,8 +64,14 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("🟢 User connected:", socket.id);
 
+  // Handle drawing events
   socket.on("draw", (data) => {
     socket.broadcast.emit("draw", data);
+  });
+
+  // Handle chat messages
+  socket.on("message", (text) => {
+    io.emit("message", text); // Broadcast to all, including sender
   });
 
   socket.on("disconnect", () => {
