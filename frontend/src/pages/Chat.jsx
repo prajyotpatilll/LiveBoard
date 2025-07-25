@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
 // Connect to backend
-const socket = io("http://localhost:3001");
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 export default function ChatApp() {
   const [input, setInput] = useState("");
