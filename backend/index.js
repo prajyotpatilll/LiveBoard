@@ -44,10 +44,19 @@ const server = http.createServer(app);
 // Setup Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "https://liveeboard.vercel.app",
-    methods: ["GET", "POST"]
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn("❌ Blocked Socket.IO origin:", origin);
+        callback(new Error("Not allowed by CORS (Socket.IO)"));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
+
 
 // Socket.IO events
 io.on("connection", (socket) => {
