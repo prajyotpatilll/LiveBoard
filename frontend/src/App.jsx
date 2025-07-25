@@ -4,10 +4,8 @@ import { io } from "socket.io-client";
 // ✅ Use environment variable for backend URL
 
 const socket = io("https://liveboard-12gj.onrender.com", {
-  transports: ["websocket", "polling"]
+  transports: ["websocket", "polling"],
 });
-
-
 
 function App() {
   const canvasRef = useRef(null);
@@ -60,6 +58,39 @@ function App() {
     setMouse({ x: offsetX, y: offsetY });
   };
 
+  const getTouchPos = (touchEvent) => {
+    const touch = touchEvent.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    };
+  };
+  
+  const startTouchDrawing = (e) => {
+    e.preventDefault();
+    const pos = getTouchPos(e);
+    drawing.current = true;
+    setMouse(pos);
+  };
+  
+  const touchDraw = (e) => {
+    e.preventDefault();
+    if (!drawing.current) return;
+    const pos = getTouchPos(e);
+  
+    drawLine(mouse.x, mouse.y, pos.x, pos.y);
+    socket.emit("draw", {
+      fromX: mouse.x,
+      fromY: mouse.y,
+      toX: pos.x,
+      toY: pos.y,
+    });
+  
+    setMouse(pos);
+  };
+  
+
   const drawLine = (fromX, fromY, toX, toY) => {
     ctxRef.current.beginPath();
     ctxRef.current.moveTo(fromX, fromY);
@@ -74,7 +105,10 @@ function App() {
       onMouseUp={stopDrawing}
       onMouseOut={stopDrawing}
       onMouseMove={draw}
-      style={{ border: "1px solid #ccc", display: "block" }}
+      onTouchStart={startTouchDrawing}
+      onTouchMove={touchDraw}
+      onTouchEnd={stopDrawing}
+      className="w-screen h-screen border border-gray-300 block cursor-crosshair touch-none"
     />
   );
 }
