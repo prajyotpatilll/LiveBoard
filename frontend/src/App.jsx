@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-// ✅ Use environment variable for backend URL
+// ✅ Connect to backend server
 const socket = io("https://liveboard-12gj.onrender.com", {
   transports: ["websocket", "polling"],
 });
@@ -14,64 +14,88 @@ function App() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
     const ctx = canvas.getContext("2d");
+
+    // ✅ High-DPI scaling
+    const scale = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * scale;
+    canvas.height = window.innerHeight * scale;
+    canvas.style.width = `${window.innerWidth}px`;
+    canvas.style.height = `${window.innerHeight}px`;
+    ctx.scale(scale, scale);
+
     ctx.lineCap = "round";
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#000";
     ctxRef.current = ctx;
 
+    // ✅ Receive draw events
     socket.on("draw", ({ fromX, fromY, toX, toY }) => {
       drawLine(fromX, fromY, toX, toY);
     });
 
-    const handleTouchMove = (e) => {
-      e.preventDefault();
-      touchDraw(e);
-    };
-
-    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    const handleResize = () => window.location.reload();
+    window.addEventListener("resize", handleResize);
 
     return () => {
       socket.off("draw");
-      canvas.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  const startDrawing = ({ nativeEvent }) => {
-    const { offsetX, offsetY } = nativeEvent;
+  // ✅ Draw line on canvas
+  const drawLine = (fromX, fromY, toX, toY) => {
+    const ctx = ctxRef.current;
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.stroke();
+  };
+
+  // ✅ Get scaled mouse position
+  const getMousePos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+
+    return {
+      x: (e.nativeEvent.clientX - rect.left) * scaleX,
+      y: (e.nativeEvent.clientY - rect.top) * scaleY,
+    };
+  };
+
+  // ✅ Get scaled touch position
+  const getTouchPos = (e) => {
+    const touch = e.touches[0];
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaleY = canvasRef.current.height / rect.height;
+
+    return {
+      x: (touch.clientX - rect.left) * scaleX,
+      y: (touch.clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDrawing = (e) => {
+    const pos = getMousePos(e);
     drawing.current = true;
-    setMouse({ x: offsetX, y: offsetY });
+    setMouse(pos);
   };
 
-  const stopDrawing = () => {
-    drawing.current = false;
-  };
-
-  const draw = ({ nativeEvent }) => {
+  const draw = (e) => {
     if (!drawing.current) return;
-    const { offsetX, offsetY } = nativeEvent;
+    const pos = getMousePos(e);
 
-    drawLine(mouse.x, mouse.y, offsetX, offsetY);
+    drawLine(mouse.x, mouse.y, pos.x, pos.y);
     socket.emit("draw", {
       fromX: mouse.x,
       fromY: mouse.y,
-      toX: offsetX,
-      toY: offsetY,
+      toX: pos.x,
+      toY: pos.y,
     });
 
-    setMouse({ x: offsetX, y: offsetY });
-  };
-
-  const getTouchPos = (touchEvent) => {
-    const touch = touchEvent.touches[0];
-    const rect = canvasRef.current.getBoundingClientRect();
-    return {
-      x: touch.clientX - rect.left,
-      y: touch.clientY - rect.top,
-    };
+    setMouse(pos);
   };
 
   const startTouchDrawing = (e) => {
@@ -97,28 +121,27 @@ function App() {
     setMouse(pos);
   };
 
-  const drawLine = (fromX, fromY, toX, toY) => {
-    ctxRef.current.beginPath();
-    ctxRef.current.moveTo(fromX, fromY);
-    ctxRef.current.lineTo(toX, toY);
-    ctxRef.current.stroke();
+  const stopDrawing = () => {
+    drawing.current = false;
   };
 
   return (
     <canvas
       ref={canvasRef}
       onMouseDown={startDrawing}
+      onMouseMove={draw}
       onMouseUp={stopDrawing}
       onMouseOut={stopDrawing}
-      onMouseMove={draw}
       onTouchStart={startTouchDrawing}
+      onTouchMove={touchDraw}
       onTouchEnd={stopDrawing}
+      onTouchCancel={stopDrawing}
       style={{
         width: "100vw",
         height: "100vh",
         display: "block",
         border: "1px solid #ccc",
-        touchAction: "none",
+        touchAction: "none", // ✅ Prevent scrolling during draw
         cursor: "crosshair",
       }}
     />
