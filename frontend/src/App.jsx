@@ -3,8 +3,8 @@ import { io } from "socket.io-client";
 
 // ✅ Use environment variable for backend URL
 
-const socket = io(import.meta.env.VITE_BACKEND_URL, {
-  transports: ["websocket"],
+const socket = io("https://liveboard-12gj.onrender.com", {
+  transports: ["websocket", "polling"]
 });
 
 

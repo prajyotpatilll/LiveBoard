@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Allowed frontend origins from .env
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
   "http://localhost:5173",
 ];
 
@@ -44,18 +44,9 @@ const server = http.createServer(app);
 // Setup Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn("❌ Blocked Socket.IO CORS origin:", origin);
-        callback(new Error("Not allowed by Socket.IO CORS"));
-      }
-    },
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-  transports: ["websocket"], // Force WebSocket only
+    origin: "https://liveeboard.vercel.app",
+    methods: ["GET", "POST"]
+  }
 });
 
 // Socket.IO events
