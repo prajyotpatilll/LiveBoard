@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
 // ✅ Use environment variable for backend URL
-
 const socket = io("https://liveboard-12gj.onrender.com", {
   transports: ["websocket", "polling"],
 });
@@ -28,8 +27,16 @@ function App() {
       drawLine(fromX, fromY, toX, toY);
     });
 
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      touchDraw(e);
+    };
+
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+
     return () => {
       socket.off("draw");
+      canvas.removeEventListener("touchmove", handleTouchMove);
     };
   }, []);
 
@@ -66,19 +73,19 @@ function App() {
       y: touch.clientY - rect.top,
     };
   };
-  
+
   const startTouchDrawing = (e) => {
     e.preventDefault();
     const pos = getTouchPos(e);
     drawing.current = true;
     setMouse(pos);
   };
-  
+
   const touchDraw = (e) => {
     e.preventDefault();
     if (!drawing.current) return;
     const pos = getTouchPos(e);
-  
+
     drawLine(mouse.x, mouse.y, pos.x, pos.y);
     socket.emit("draw", {
       fromX: mouse.x,
@@ -86,10 +93,9 @@ function App() {
       toX: pos.x,
       toY: pos.y,
     });
-  
+
     setMouse(pos);
   };
-  
 
   const drawLine = (fromX, fromY, toX, toY) => {
     ctxRef.current.beginPath();
@@ -106,9 +112,15 @@ function App() {
       onMouseOut={stopDrawing}
       onMouseMove={draw}
       onTouchStart={startTouchDrawing}
-      onTouchMove={touchDraw}
       onTouchEnd={stopDrawing}
-      className="w-screen h-screen border border-gray-300 block cursor-crosshair touch-none"
+      style={{
+        width: "100vw",
+        height: "100vh",
+        display: "block",
+        border: "1px solid #ccc",
+        touchAction: "none",
+        cursor: "crosshair",
+      }}
     />
   );
 }
