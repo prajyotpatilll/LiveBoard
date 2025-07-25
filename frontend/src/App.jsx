@@ -2,7 +2,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
 // ✅ Use environment variable for backend URL
-const socket = io(import.meta.env.VITE_BACKEND_URL);
+
+const socket = io(import.meta.env.VITE_BACKEND_URL, {
+  transports: ["websocket"],
+});
+
+
 
 function App() {
   const canvasRef = useRef(null);
