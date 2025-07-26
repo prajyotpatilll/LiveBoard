@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Allowed frontend origins from .env
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+const allowedOrigins = process.env.CLIENT_ORIGIN?.split(",") || [
   "http://localhost:5173",
 ];
 
