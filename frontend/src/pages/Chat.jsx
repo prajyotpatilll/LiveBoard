@@ -76,7 +76,7 @@ const styles = {
     border: "1px solid #ccc",
     borderRadius: "8px",
     padding: "1rem",
-    height: "300px",
+    height: "550px",
     overflowY: "auto",
     backgroundColor: "#f2f2f2",
     marginBottom: "1rem",
